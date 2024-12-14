@@ -179,8 +179,15 @@
       {{ periodical | strip }}
     </div>
     <div class="periodical">
-      {{ entry.note | strip }}
+        {% if entry.note %}
+          <strong><note>{{entry.note}}</note></strong>
+        {% endif %}
     </div>
+    <div class="periodical">
+        {% if entry.note2 %}
+          <strong><note>{{entry.note2}}</note></strong>
+        {% endif %}
+    </div>    
 
     <!-- Links/Buttons -->
     <div class="links">
@@ -348,6 +355,10 @@
       <div class="abstract hidden">
         <p>{{ entry.abstract }}</p>
       </div>
+    {% endif %}
+
+    {% if entry.oral %}
+        <award class="badge">Oral</award>
     {% endif %}
 
     {% if entry.bibtex_show %}

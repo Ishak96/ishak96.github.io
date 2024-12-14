@@ -717,6 +717,20 @@ footer.sticky-bottom {
         }
       }
 
+      award {
+        // background-color: var(--global-bg-color);
+        color: var(--global-theme-color) !important;
+        display: inline-block;
+        background-color: var(--global-bg-color);
+        padding-left: 1rem;
+        padding-right: 1rem;
+        a {
+          color: red;
+          &:hover {
+            text-decoration: none;
+          }
+        }
+      }
       .title {
         font-weight: bolder;
       }
