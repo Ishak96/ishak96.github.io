@@ -8,14 +8,33 @@
   abstract = {Computed tomography has been widely used in biomedical and industrial applications. The well-known filtered back-projection algorithm, probably the most used reconstruction technique, fails when the angular range used for data acquisition is not sufficient. As a consequence, reconstructions exhibit artifacts. In order to eliminate these artifacts, we propose in this article a new deep learning approach based on a U-net architecture which includes a morphological operation. This operation of mathematical morphology allows us to capture better some non-linear properties of the object to reconstruct. The proposed method provides good results for angular ranges of 170, 150, 130 and even 110 degrees. To the best of our knowledge, it is the first time a limited-angle artifact suppression method works with 110 projections.},
 }
 
+@inproceedings{ishak2022tomo,
+  author={Ayad, Ishak and Tarpau, C\'{e}cilia and Cebeiro, Javier and Nguyen, Mai K.},
+  title={Tomographic reconstruction from sparse-view and limited-angle data using a generative adversarial network}, 
+  booktitle={IEEE SITIS},
+  year={2022},
+  pdf={https://ieeexplore.ieee.org/abstract/document/10090099},
+  preview={ishak2022tomo.png},
+  abstract={Limited-angle and sparse-view computed tomography have been widely used to shorten the acquisition time in medical imaging and to offer the possibility of scanning large objects. However, this is a severely ill-posed inverse problem due to missing data. In these scenarios, the well-known filtered back-projection reconstruction technique exhibits severe artifacts and degradation. Recently, deep learning methods have demonstrated impressive performance in computer vision (denoising, classification, etc.) but it frequently fails to solve both limited-angle and sparse-view reconstruction. Inspired by the high performance of GAN-based image-to-image translation methods, we investigate a patchGAN as a solution to the reconstruction problem mapping data (Radon space) into the image domain. The generator is made of a V-net where the reconstruction in the sense of a least-squares minimization is carried out at different scales in the encoder path and linked with the decoder path by skip connections. The discriminator uses both information from the image and projection data domains. The proposed method gives promising reconstruction results from data acquired with a limited angular range covering only 110 degrees (instead of 180 degrees), as well as for sparse-view data with 10 degrees of sampling step. Moreover, different reconstruction results show that the method is able to reconstruct images from sparse and limited angular range data at the same time.},
+}
+
 @inproceedings{ishak2022hgan,
   author={Ayad, Ishak and Tarpau, C\'{e}cilia and Nguyen, Mai K.},
   title={Tomographic image reconstruction from incomplete data via a hybrid GAN}, 
-  booktitle={IEEE NSS MIC RTSD},
+  booktitle={IEEE MIC},
   year={2022},
   pdf={https://hal.science/hal-03780132/document},
-  preview={ishak2022hgan.png},
   abstract={Limited data tomographic reconstruction has been widely used in medical imaging to reduce the radiation dose or shorten the data acquisition time. This is achieved by truncating the scanning angular range or increasing the angular sampling rate. However, the use of classical reconstruction methods with such incomplete data involves severe streaking artifacts, blurred edges, distorted boundaries, contrast loss, and decreased intensities in the reconstructed images. In this work, we propose a generative adversarial network made of a V-net generator with modified skip connections that simulates the algebraic reconstruction and a discriminator combining both information from the image and projection domains which only penalizes structure at the scale of image patches. The proposed method obtains promising results for data coming from both limitedangle and sparse-view projections, that is, data acquired from an angular range of 90 degrees and an angular sampling step of 10 degrees.},
+}
+
+@inproceedings{ayad2023cst,
+  author={Ayad, Ishak and Tarpau, C{\'e}cilia and Cebeiro, Javier and Nguyen, Mai K},
+  title={A deep-learning based algorithm for image reconstruction in Compton tomography},
+  booktitle={IEEE IPTA},
+  year={2023},
+  pdf={https://ieeexplore.ieee.org/abstract/document/10320071},
+  preview={ayad2023cst.png},
+  abstract={In this paper we study the applications of deep-learning to the problem of image reconstruction in Compton scatter tomography, a field where deep-learning techniques are still unexplored. Particularly, we focus on a new design with uncollimated detectors that simplifies some previous configurations of Compton scanners. The system inherits attractive advantages such as non-moving components and the ability to combine with other imaging modes. Since there is no an analytic inverse formula for image reconstruction, we developed a GAN based algorithm that provides an efficient mapping between data and image domains. We compare our method against several algorithmic approaches and show that high quality image reconstruction is feasible. Results encourage further research in the application of deep-learning reconstruction techniques in Compton scatter tomography, particularly when inverse reconstruction formulas are unknown.},
 }
 
 @inproceedings{ishak2024unwavenet,
@@ -30,7 +49,7 @@
   note = {MICCAI Young Scientist Award},
   note2 = {Early Acceptance - Top 11\%},
   oral = {true},
-  abstract = { Computed tomography (CT) is a widely used medical imaging technique to scan internal structures of a body, typically involving collimation and mechanical rotation. Compton scatter tomography (CST) presents an interesting alternative to conventional CT by leveraging Compton physics instead of collimation to gather information from multiple directions. While CST introduces new imaging opportunities with several advantages such as high sensitivity, compactness, and entirely fixed systems, image reconstruction remains an open problem due to the mathematical challenges of CST modeling. In contrast, deep unrolling networks have demonstrated potential in CT image reconstruction, despite their computationally intensive nature. In this study, we investigate the efficiency of unrolling networks for CST image reconstruction. To address the important computational cost required for training, we propose UnWave-Net, a novel unrolled wavelet-based reconstruction network. This architecture includes a non-local regularization term based on wavelets, which captures long-range dependencies within images and emphasizes the multi-scale components of the wavelet transform. We evaluate our approach using a CST of circular geometry which stays completely static during data acquisition, where UnWave-Net facilitates image reconstruction in the absence of a specific reconstruction formula. Our method outperforms existing approaches and achieves state-of-theart performance in terms of SSIM and PSNR, and offers an improved computational efficiency compared to traditional unrolling networks.},
+  abstract = {Computed tomography (CT) is a widely used medical imaging technique to scan internal structures of a body, typically involving collimation and mechanical rotation. Compton scatter tomography (CST) presents an interesting alternative to conventional CT by leveraging Compton physics instead of collimation to gather information from multiple directions. While CST introduces new imaging opportunities with several advantages such as high sensitivity, compactness, and entirely fixed systems, image reconstruction remains an open problem due to the mathematical challenges of CST modeling. In contrast, deep unrolling networks have demonstrated potential in CT image reconstruction, despite their computationally intensive nature. In this study, we investigate the efficiency of unrolling networks for CST image reconstruction. To address the important computational cost required for training, we propose UnWave-Net, a novel unrolled wavelet-based reconstruction network. This architecture includes a non-local regularization term based on wavelets, which captures long-range dependencies within images and emphasizes the multi-scale components of the wavelet transform. We evaluate our approach using a CST of circular geometry which stays completely static during data acquisition, where UnWave-Net facilitates image reconstruction in the absence of a specific reconstruction formula. Our method outperforms existing approaches and achieves state-of-theart performance in terms of SSIM and PSNR, and offers an improved computational efficiency compared to traditional unrolling networks.},
 }
 
 @inproceedings{ishak2024qnmixer,

@@ -2,22 +2,22 @@
 layout: about
 title: About
 permalink: /
-subtitle: AI Researcher at <a href='https://www.cyu.fr/'>CY Cergy Paris University</a>
+subtitle: Postdoc Researcher at <a href='https://cvn.centralesupelec.fr/'>CVN</a> · <a href='https://www.centralesupelec.fr/'>CentraleSupélec</a> / <a href='https://www.inria.fr/'>Inria</a> / <a href='https://www.universite-paris-saclay.fr/'>Paris-Saclay University</a>
 
 profile:
   align: right
   image: prof_pic.jpg
   image_circular: false # crops the image to make it circular
   more_info: >
-    <a href='mailto:ishak.ayad@cyu.fr' style="margin: 40px;">ishak.ayad@cyu.fr</a>
+    <a href='mailto:ai.ayad.ishak@gmail.com'>ai.ayad.ishak@gmail.com</a>
 
 news: true # includes a list of news items
 selected_papers: true # includes a list of papers marked as "selected={true}"
 social: true # includes social icons at the bottom of the page
 ---
 
-I am a research scientist at CY Cergy Paris University, part of the [ETIS Laboratory](https://www.etis-lab.fr/) in Cergy, France. My work combines signal processing and machine learning, focusing on imaging inverse problems and computational imaging.  
+I am a Postdoc Researcher at CentraleSupélec / Inria / Université Paris-Saclay, in Gif-sur-Yvette, France, under the supervision of [Nora Ouzir](https://scholar.google.com/citations?user=QoZ6NyoAAAAJ&hl=en) and [Jean-Christophe Pesquet](https://jc.pesquet.eu/). My research focuses on deep unrolling, inverse problems, motion compensation, and ultrasound imaging.
 
-I obtained my Ph.D. in November 2024 from CY Cergy Paris University. During my Ph.D., I proposed innovative methods like UnWave-Net for advanced image reconstruction. My efforts were recognized with the **Best Young Scientist Award at MICCAI 2024**.
+I obtained my Ph.D. in November 2024 from CY Cergy Paris University, where I was part of the [ETIS Laboratory](https://www.etis-lab.fr/). My thesis, *Advancing CT Image Reconstruction Through Deep Learning Approaches and Optimization Techniques*, introduced methods such as **UnWave-Net** and **QN-Mixer** for sparse-view CT and Compton tomography reconstruction. My work was recognized with the **Young Scientist Award at MICCAI 2024**.
 
-With a passion for advancing AI-driven imaging solutions, I am excited to explore new challenges and contribute to transformative innovations.
+My research sits at the intersection of signal processing and machine learning, with a focus on solving ill-posed inverse problems in medical imaging (CT, MRI, EIT, US).
