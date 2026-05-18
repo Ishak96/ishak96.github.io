@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <rect width="400" height="300" fill="#ffffff"/>
+  <!-- CT scanner ring -->
+  <circle cx="200" cy="150" r="110" fill="none" stroke="#6c8ebf" stroke-width="12"/>
+  <circle cx="200" cy="150" r="85" fill="none" stroke="#dae8fc" stroke-width="6"/>
+  <!-- Patient/object being scanned -->
+  <ellipse cx="200" cy="150" rx="40" ry="55" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+  <!-- Motion arrow curved -->
+  <path d="M 175 95 Q 155 75 180 60" fill="none" stroke="#b85450" stroke-width="3" stroke-dasharray="5,3"/>
+  <polygon points="178,57 186,63 174,67" fill="#b85450"/>
+  <!-- X-ray beams -->
+  <line x1="95" y1="100" x2="160" y2="133" stroke="#82b366" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.7"/>
+  <line x1="90" y1="150" x2="160" y2="150" stroke="#82b366" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.7"/>
+  <line x1="95" y1="200" x2="160" y2="167" stroke="#82b366" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.7"/>
+  <line x1="305" y1="100" x2="240" y2="133" stroke="#82b366" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.7"/>
+  <line x1="310" y1="150" x2="240" y2="150" stroke="#82b366" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.7"/>
+  <line x1="305" y1="200" x2="240" y2="167" stroke="#82b366" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.7"/>
+  <!-- Source dot -->
+  <circle cx="90" cy="150" r="7" fill="#82b366"/>
+  <!-- Detector arc -->
+  <path d="M 305 100 A 115 115 0 0 1 305 200" fill="none" stroke="#d6b656" stroke-width="6" stroke-linecap="round"/>
+  <!-- Label -->
+  <text x="200" y="280" font-family="Arial, sans-serif" font-size="13" fill="#555" text-anchor="middle">Rigid Motion Compensated CT</text>
+</svg>
