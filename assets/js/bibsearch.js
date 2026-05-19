@@ -95,8 +95,17 @@ document.addEventListener("DOMContentLoaded", function () {
       if (searchType === "year") {
         listItems.forEach((li) => {
           const ol = li.closest("ol.bibliography");
-          const h2 = ol ? ol.previousElementSibling : null;
-          const yearText = h2 && h2.classList.contains("year") ? h2.textContent.trim().toLowerCase() : "";
+          let yearText = "";
+          if (ol) {
+            let sibling = ol.previousElementSibling;
+            while (sibling) {
+              if (sibling.tagName === "H2" && sibling.classList.contains("year")) {
+                yearText = sibling.textContent.trim().toLowerCase();
+                break;
+              }
+              sibling = sibling.previousElementSibling;
+            }
+          }
           if (yearText.indexOf(searchTerm) === -1) {
             li.classList.add("unloaded");
           }
