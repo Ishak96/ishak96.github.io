@@ -88,21 +88,32 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       }
     } else {
-      // Field-specific search (title or conference) – plain text match
+      // Field-specific search (title, conference, or year) – plain text match
       if (CSS.highlights) {
         CSS.highlights.delete("search");
       }
-      const childSelector = searchType === "title" ? ".title" : ".periodical";
-      listItems.forEach((li) => {
-        const targets = li.querySelectorAll(childSelector);
-        const text = Array.from(targets)
-          .map((el) => el.innerText)
-          .join(" ")
-          .toLowerCase();
-        if (text.indexOf(searchTerm) === -1) {
-          li.classList.add("unloaded");
-        }
-      });
+      if (searchType === "year") {
+        listItems.forEach((li) => {
+          const ol = li.closest("ol.bibliography");
+          const h2 = ol ? ol.previousElementSibling : null;
+          const yearText = h2 && h2.classList.contains("year") ? h2.textContent.trim().toLowerCase() : "";
+          if (yearText.indexOf(searchTerm) === -1) {
+            li.classList.add("unloaded");
+          }
+        });
+      } else {
+        const childSelector = searchType === "title" ? ".title" : ".periodical";
+        listItems.forEach((li) => {
+          const targets = li.querySelectorAll(childSelector);
+          const text = Array.from(targets)
+            .map((el) => el.innerText)
+            .join(" ")
+            .toLowerCase();
+          if (text.indexOf(searchTerm) === -1) {
+            li.classList.add("unloaded");
+          }
+        });
+      }
     }
 
     hideEmptyYearGroups();
