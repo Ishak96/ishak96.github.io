@@ -121,7 +121,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (child.tagName === "H2" && child.classList.contains("year")) {
         currentH2 = child;
       } else if (child.tagName === "OL" && child.classList.contains("bibliography") && currentH2) {
-        groups.push({ year: parseInt(currentH2.textContent.trim(), 10), h2: currentH2, ol: child });
+        const year = parseInt(currentH2.textContent.trim(), 10);
+        groups.push({ year: isNaN(year) ? 0 : year, h2: currentH2, ol: child });
         currentH2 = null;
       }
     });
@@ -157,7 +158,7 @@ document.addEventListener("DOMContentLoaded", function () {
     bibsearchInput.addEventListener("input", function () {
       clearTimeout(timeoutId); // Clear the previous timeout
       const searchTerm = this.value.toLowerCase();
-      timeoutId = setTimeout(filterItems(searchTerm, getSearchType()), 300);
+      timeoutId = setTimeout(() => filterItems(searchTerm, getSearchType()), 300);
     });
   }
 
