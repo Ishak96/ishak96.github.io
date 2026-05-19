@@ -184,6 +184,7 @@ document.addEventListener("DOMContentLoaded", function () {
         icon.className = newOrder === "asc" ? "fa-solid fa-arrow-up-wide-short" : "fa-solid fa-arrow-down-wide-short";
       }
       this.title = newOrder === "asc" ? "Sort by year (ascending)" : "Sort by year (descending)";
+      this.setAttribute("aria-label", newOrder === "asc" ? "Sort by year (ascending)" : "Sort by year (descending)");
       sortYearGroups(newOrder);
     });
   }
