@@ -11,7 +11,7 @@ description: > # the ">" symbol means to ignore newlines until "footer_text:"
   Ishak AYAD — Postdoc Researcher at CentraleSupélec / Inria / Paris-Saclay University, working on deep learning, inverse problems, and medical imaging (CT, MRI, ultrasound).
 footer_text: >
 keywords: > 
-  Ishak AYAD, Ishak Ayad, machine learning, medical imaging, image reconstruction, optimization, deep learning, inverse problems, CT reconstruction, ultrasound imaging
+  Ishak Ayad, machine learning, medical imaging, image reconstruction, optimization, deep learning, inverse problems, CT reconstruction, ultrasound imaging
 lang: en # the language of your site (for example: en, fr, cn, ru, etc.)
 icon: 🔬 # the emoji used as the favicon (alternatively, provide image name in /assets/img/)
 
