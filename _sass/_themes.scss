@@ -1,0 +1,50 @@
+/*******************************************************************************
+ * Themes
+ ******************************************************************************/
+
+:root {
+  --global-bg-color: #0e1116;
+  --global-code-bg-color: #171c23;
+  --global-text-color: #ece9e2;
+  --global-text-color-light: #b8b1a3;
+  --global-theme-color: #7d8899;
+  --global-hover-color: #a0806a;
+  --global-hover-text-color: #ece9e2;
+  --global-footer-bg-color: #0e1116;
+  --global-footer-text-color: #b8b1a3;
+  --global-footer-link-color: #8e99aa;
+  --global-distill-app-color: #b8b1a3;
+  --global-divider-color: #2b323b;
+  --global-card-bg-color: #171c23;
+  --global-highlight-color: #b08b6f;
+  --global-back-to-top-bg-color: #171c23;
+  --global-back-to-top-text-color: #ece9e2;
+  --global-newsletter-bg-color: #171c23;
+  --global-newsletter-text-color: #ece9e2;
+  --global-button-color: #5e6d67;
+  --global-button-text-color: #ece9e2;
+  --global-button-hover-color: color-mix(in srgb, #5e6d67 82%, #ece9e2);
+
+  --global-tip-block: #7d8899;
+  --global-tip-block-bg: color-mix(in srgb, #7d8899 18%, #171c23);
+  --global-tip-block-text: #ece9e2;
+  --global-tip-block-title: #8e99aa;
+  --global-warning-block: #a0806a;
+  --global-warning-block-bg: color-mix(in srgb, #a0806a 18%, #171c23);
+  --global-warning-block-text: #ece9e2;
+  --global-warning-block-title: #b08b6f;
+  --global-danger-block: #a0806a;
+  --global-danger-block-bg: color-mix(in srgb, #a0806a 24%, #171c23);
+  --global-danger-block-text: #ece9e2;
+  --global-danger-block-title: #b08b6f;
+
+  #back-to-top {
+    color: var(--global-back-to-top-text-color);
+    background: var(--global-back-to-top-bg-color);
+    bottom: $back-to-top-bottom;
+    right: $back-to-top-right;
+    height: $back-to-top-height;
+    width: $back-to-top-width;
+    z-index: $back-to-top-z-index;
+  }
+}
