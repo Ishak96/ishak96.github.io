@@ -323,18 +323,25 @@ export function isOral(publication) {
   return /^(true|yes|1)$/i.test(String(publication.oral ?? "").trim());
 }
 
+export function isShortlisted(publication) {
+  return /\bshort-?\s?listed\b/i.test(plainText(publication.note ?? ""));
+}
+
 export function hasAward(publication) {
-  return /\baward/i.test(plainText(publication.note ?? ""));
+  return /\baward/i.test(plainText(publication.note ?? "")) && !isShortlisted(publication);
 }
 
 export function analyzeHighlights(publications) {
   const orals = publications.filter(isOral);
   const awards = publications.filter(hasAward);
+  const shortlisted = publications.filter(isShortlisted);
   return {
     orals: orals.length,
     awards: awards.length,
+    shortlisted: shortlisted.length,
     oralTitles: orals.map((paper) => plainText(paper.title)),
     awardNotes: awards.map((paper) => plainText(paper.note)),
+    shortlistedNotes: shortlisted.map((paper) => plainText(paper.note)),
   };
 }
 
@@ -348,6 +355,12 @@ function renderHighlights(section, highlights) {
   };
   fill("orals", highlights.orals, highlights.oralTitles);
   fill("awards", highlights.awards, highlights.awardNotes);
+  fill("shortlisted", highlights.shortlisted, highlights.shortlistedNotes);
+  const shortlistedRow = container.querySelector("[data-highlight-shortlisted]");
+  if (shortlistedRow) {
+    shortlistedRow.title = highlights.shortlistedNotes.join("\n");
+    shortlistedRow.hidden = highlights.shortlisted === 0;
+  }
   container.hidden = false;
 }
 
