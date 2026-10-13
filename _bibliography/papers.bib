@@ -6,6 +6,7 @@
   oral = {true},
   pdf = {https://inria.hal.science/hal-05624913},
   preview = {vuk2026motion.png},
+  note = {Best Student Paper Award – Shortlisted},
   abstract = {Slow-rotating computed tomography (CT) devices are prone to motion artifacts due to long scan times. These devices are commonly used in interventional procedures or radiotherapy involving cone-beam CT (CBCT). While several motion correction strategies have been proposed, accurately reconstructing motion-corrupted images directly from projection data remains challenging due to strong nonconvex coupling between motion parameters and images. In this work, we propose a method to mitigate motion artifacts in slow-rotation CT imaging. We tackle the challenge of nonconvexity with an alternating proximal algorithm that benefits from convergence guarantees while jointly estimating motion and image information. We show that a rigid, piecewise-constant motion model that captures typical patient motion patterns provides stable estimation. A multiscale discrete search strategy accelerates motion estimation to move towards real-time motion correction. Experimental results on a real slow-rotation CT dataset demonstrate that the proposed method effectively estimates rigid motions, while significantly improving reconstruction quality over traditional FBP, iterative strategies, and a recent learning-based motion correction method.},
 }
 
@@ -80,7 +81,7 @@
   selected = {true},
   booktitle = {Proceedings of the International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI)},
   year = {2026},
-  pdf = {},
+  pdf = {https://papers.miccai.org/miccai-2026/paper/2625_paper.pdf},
   preview = {abdelmoumene2026breit.png},
   abstract = {Multi-Frequency Electrical Impedance Tomography (MF-EIT) is a non-invasive, low-cost modality that reconstructs electrical property distributions from boundary voltages. For stroke imaging, progress in 3D deep-learning reconstruction is limited by the lack of large-scale datasets with paired ground-truth (GT) volumes and by non-standardized pipelines for data generation, simulation, and evaluation. We introduce BREIT, a modular framework for 3D MF-EIT stroke reconstruction providing: (i) a neuroimaging-to-EIT pipeline that converts CT/MRI into frequency-dependent GT admittivity volumes; (ii) a self-contained Python 3D Complete Electrode Model (CEM) forward solver for simulating MF-EIT voltages; and (iii) a 3D D-bar implementation supporting non-uniform electrode layouts. Building on BREIT, we propose dFNO-bar, which integrates Fourier Neural Operators into D-bar by learning a mapping from scattering data $t(\xi)$ to conductivity $\sigma(x){=}\Re\{\gamma\}$. We evaluate dFNO-bar against D-bar, Deep D-bar, and Gauss--Newton reconstructions on UCLH-matched synthetic data, and observe higher brain SSIM with comparable CC across noise settings.},
 }
