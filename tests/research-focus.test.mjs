@@ -261,11 +261,22 @@ test("highlights count oral papers and award notes", () => {
     record("b", "Paper B", "CT.", { oral: "True" }),
     record("c", "Paper C", "CT.", { oral: "false", note: "Best paper awarded" }),
     record("d", "Paper D", "CT.", { note: "Accepted as poster" }),
+    record("f", "Paper F", "CT.", { note: "Best Student Paper Award – Shortlisted" }),
+    record("g", "Paper G", "CT.", { note: "Short-listed for best paper" }),
   ];
   const result = analyzeHighlights(papers);
   assert.equal(result.orals, 2);
   assert.equal(result.awards, 2);
   assert.deepEqual(result.oralTitles, ["Paper A", "Paper B"]);
   assert.deepEqual(result.awardNotes, ["MICCAI Young Scientist Award", "Best paper awarded"]);
-  assert.deepEqual(analyzeHighlights([record("e", "Paper E")]), { orals: 0, awards: 0, oralTitles: [], awardNotes: [] });
+  assert.equal(result.shortlisted, 2);
+  assert.deepEqual(result.shortlistedNotes, ["Best Student Paper Award – Shortlisted", "Short-listed for best paper"]);
+  assert.deepEqual(analyzeHighlights([record("e", "Paper E")]), {
+    orals: 0,
+    awards: 0,
+    shortlisted: 0,
+    oralTitles: [],
+    awardNotes: [],
+    shortlistedNotes: [],
+  });
 });

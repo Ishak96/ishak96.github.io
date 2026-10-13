@@ -63,16 +63,19 @@ Scholar from repeated requests and reduce captcha blocks, it reuses a result for
 up to one hour. If the Worker or Scholar fails, the metrics block stays hidden;
 no numbers are made up.
 
-One-time deployment (free Cloudflare account):
+Deployment is automatic: the `Deploy site` workflow deploys the Worker with
+`cloudflare/wrangler-action` and writes the returned `workers.dev` URL into
+`scholar_metrics_api` before building the site. One-time setup (free Cloudflare account):
 
-```sh
-cd cloudflare/scholar-metrics
-npx wrangler login
-npx wrangler deploy
-```
+1. In Cloudflare, create an API token from the **Edit Cloudflare Workers** template.
+2. In GitHub → Settings → Secrets and variables → Actions, add the
+   `CLOUDFLARE_API_TOKEN` secret, plus `CLOUDFLARE_ACCOUNT_ID`, which is shown on the Workers dashboard.
+3. Open **Workers & Pages** in the dashboard once so your `workers.dev` subdomain exists.
+4. Re-run the `Deploy site` workflow (Actions → Deploy site → Run workflow).
 
-Then set the printed URL in `_config.yml`, for example
-`scholar_metrics_api: https://scholar-metrics.<subdomain>.workers.dev`, and push.
+Without the secret, the site still deploys and the metrics block stays hidden.
+To deploy by hand instead, run `npx wrangler deploy` in `cloudflare/scholar-metrics`
+and set `scholar_metrics_api` in `_config.yml` to the printed URL.
 If the site is served from another domain, add it to `ALLOWED_ORIGINS` in
 [wrangler.toml](../cloudflare/scholar-metrics/wrangler.toml).
 
@@ -122,6 +125,7 @@ Counts alone do not establish quality, effort, impact, or sustained trends.
 The sidebar also shows two counts, computed in the browser from `assets/data/research-publications.json` (generated from `_bibliography/papers.bib`):
 
 - **Oral papers** (microphone icon): entries with `oral = {true}`.
-- **Awards** (golden trophy icon): entries whose `note` field contains the word "award".
+- **Awards** (golden trophy icon): entries whose `note` field contains the word "award" but not "shortlisted".
+- **Shortlisted** (small silver badge under the awards number): entries whose `note` contains "shortlisted" (or "short-listed"). Hidden when there are none.
 
 Hover a card to see the matching paper titles or award notes.
