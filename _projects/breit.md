@@ -515,12 +515,12 @@ _styles: >
   <p class="affil"><sup>1</sup> ETIS (UMR 8051), CY Cergy Paris University, ENSEA, CNRS · <sup>2</sup> AGM (UMR 8088), CY Cergy Paris University, CNRS<br><sup>3</sup> Paris-Saclay University, CentraleSupélec, Inria, CVN</p>
   <p class="affil affil-note"><sup>*</sup> Corresponding author</p>
   <div class="btn-row">
-    <div class="paper-btn">
-      <a href="#" class="btn primary disabled" onclick="return false;">
-        <i class="fa-solid fa-book"></i>&nbsp; Paper (MICCAI 2026)
-      </a>
-      <span class="coming-soon">Coming Soon</span>
-    </div>
+    <!-- <div class="paper-btn"> -->
+    <a href="https://papers.miccai.org/miccai-2026/paper/2625_paper.pdf" class="btn">
+      <i class="fa-solid fa-book"></i>&nbsp; Paper (MICCAI 2026)
+    </a>
+      <!-- <span class="coming-soon">Coming Soon</span> -->
+    <!-- </div> -->
 
     <a href="http://arxiv.org/abs/2606.28787" class="btn">
       <i class="fa-solid fa-file-pdf"></i>&nbsp; arXiv preprint
