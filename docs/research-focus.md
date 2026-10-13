@@ -49,41 +49,25 @@ only requires editing the topic rules.
 
 ## Google Scholar metrics
 
-Citations, h-index, and i10-index are fetched **live in the visitor's browser
-every time the Publications page opens**. Nothing is generated at build time or
-entered manually.
+Citations, h-index, and i10-index are read from
+[assets/data/scholar-metrics.json](../assets/data/scholar-metrics.json), which the
+browser loads every time the Publications page opens. A daily GitHub Actions job,
+[scholar-metrics.yml](../.github/workflows/scholar-metrics.yml), keeps this file up to date:
 
-Browsers cannot read `scholar.google.com` directly from another site (CORS), and
-GitHub Pages cannot run server code. A small free
-[Cloudflare Worker](../cloudflare/scholar-metrics/worker.mjs) therefore relays the
-request. On each page visit, the browser calls the Worker. The Worker reads the
-public profile and returns the three numbers as JSON with CORS headers. It only
-serves the profile set in `SCHOLAR_USER_ID`, so it is not an open proxy. To shield
-Scholar from repeated requests and reduce captcha blocks, it reuses a result for
-up to one hour. If the Worker or Scholar fails, the metrics block stays hidden;
-no numbers are made up.
+1. Every day at 05:17 UTC (or on demand via Actions → Update Google Scholar
+   metrics → Run workflow), it runs [bin/scholar-metrics.mjs](../bin/scholar-metrics.mjs).
+   The script reads the public profile for `scholar_userid` in `_config.yml`.
+2. If any number changed, it commits the JSON file and starts the `Deploy site` workflow.
+3. If Scholar blocks the request (it often blocks cloud servers), the last saved
+   numbers are kept and the run shows a warning. The page shows the date of the last
+   successful update next to the source link.
 
-Deployment is automatic: the `Deploy site` workflow deploys the Worker with
-`cloudflare/wrangler-action` and writes the returned `workers.dev` URL into
-`scholar_metrics_api` before building the site. One-time setup (free Cloudflare account):
+No secrets or external services are needed. Browsers cannot read Scholar directly
+(CORS), and Scholar blocks requests from cloud proxies such as Cloudflare Workers,
+so the numbers are not fetched live on each visit.
 
-1. In Cloudflare, create an API token from the **Edit Cloudflare Workers** template.
-2. In GitHub → Settings → Secrets and variables → Actions, add the
-   `CLOUDFLARE_API_TOKEN` secret, plus `CLOUDFLARE_ACCOUNT_ID`, which is shown on the Workers dashboard.
-3. Open **Workers & Pages** in the dashboard once so your `workers.dev` subdomain exists.
-4. Re-run the `Deploy site` workflow (Actions → Deploy site → Run workflow).
-
-Without the secret, the site still deploys and the metrics block stays hidden.
-To deploy by hand instead, run `npx wrangler deploy` in `cloudflare/scholar-metrics`
-and set `scholar_metrics_api` in `_config.yml` to the printed URL.
-If the site is served from another domain, add it to `ALLOWED_ORIGINS` in
-[wrangler.toml](../cloudflare/scholar-metrics/wrangler.toml).
-
-Locally, `docker compose up` also starts the same Worker code on
-`http://localhost:8787` ([dev-server.mjs](../cloudflare/scholar-metrics/dev-server.mjs)).
-Development builds use it automatically, so metrics appear on
-`http://localhost:8080/publications/` without a Cloudflare account. Without
-Docker, run `node cloudflare/scholar-metrics/dev-server.mjs`.
+To refresh the numbers by hand from your own computer, run
+`node bin/scholar-metrics.mjs` and commit `assets/data/scholar-metrics.json`.
 
 ## Automatic updates and tests
 

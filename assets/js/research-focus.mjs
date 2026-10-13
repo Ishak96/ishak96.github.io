@@ -390,7 +390,7 @@ export function renderScholarMetrics(container, metrics) {
   link.rel = "external nofollow noopener";
   link.target = "_blank";
   link.textContent = "Google Scholar";
-  meta.replaceChildren("Source: ", link);
+  meta.replaceChildren("Source: ", link, `, updated ${date}`);
   container.hidden = false;
 }
 
@@ -398,7 +398,7 @@ export async function initializeScholarMetrics(section, fetchSource = fetch) {
   const container = section.querySelector("[data-scholar-metrics]");
   if (!container || !section.dataset.scholarSource) return;
   try {
-    const response = await fetchSource(section.dataset.scholarSource, { cache: "no-store", mode: "cors" });
+    const response = await fetchSource(section.dataset.scholarSource, { cache: "no-store" });
     if (!response.ok) throw new Error(`Scholar metrics request failed (HTTP ${response.status}).`);
     const metrics = validateScholarMetrics(await response.json());
     if (metrics) renderScholarMetrics(container, metrics);

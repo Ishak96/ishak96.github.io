@@ -1,0 +1,46 @@
+name: Update Google Scholar metrics
+
+on:
+  schedule:
+    - cron: "17 5 * * *" # every day at 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: scholar-metrics
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+      - name: Setup Node 🟢
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Fetch Google Scholar metrics 🎓
+        run: node bin/scholar-metrics.mjs
+      - name: Commit updated metrics 💾
+        id: commit
+        run: |
+          if git diff --quiet -- assets/data/scholar-metrics.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/scholar-metrics.json
+          git commit -m "Update Google Scholar metrics"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      # Pushes made with GITHUB_TOKEN do not start other workflows, so start the deploy explicitly.
+      - name: Redeploy site 🚀
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref "${{ github.ref_name }}"

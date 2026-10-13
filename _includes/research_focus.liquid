@@ -4,13 +4,7 @@
   data-research-focus
   data-source="{{ '/assets/data/research-publications.json' | relative_url }}?v={{ site.data.research_publications_hash }}"
   data-topics="{{ site.data.research_topics | jsonify | escape }}"
-  {% assign scholar_metrics_api = site.scholar_metrics_api %}
-  {% if jekyll.environment == 'development' %}
-    {% assign scholar_metrics_api = 'http://localhost:8787/' %}
-  {% endif %}
-  {% if scholar_metrics_api %}
-    data-scholar-source="{{ scholar_metrics_api }}"
-  {% endif %}
+  data-scholar-source="{{ '/assets/data/scholar-metrics.json' | relative_url }}"
 >
   <div class="scholar-metrics" data-scholar-metrics hidden>
     <h2>Google Scholar Metrics</h2>

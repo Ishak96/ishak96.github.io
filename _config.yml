@@ -10,7 +10,7 @@ email: ishak.ayad@centralesupelec.fr
 description: > # the ">" symbol means to ignore newlines until "footer_text:"
   Ishak AYAD — Postdoc Researcher at CentraleSupélec / Inria / Paris-Saclay University, working on deep learning, inverse problems, and medical imaging (CT, MRI, ultrasound).
 footer_text: >
-keywords: > 
+keywords: >
   Ishak Ayad, machine learning, medical imaging, image reconstruction, optimization, deep learning, inverse problems, CT reconstruction, ultrasound imaging
 lang: en # the language of your site (for example: en, fr, cn, ru, etc.)
 icon: 🔬 # the emoji used as the favicon (alternatively, provide image name in /assets/img/)
@@ -66,8 +66,7 @@ og_image: assets/img/prof_pic.jpg # The site-wide (default for all links) Open G
 
 github_username: ishak96 # your GitHub user name
 x_username: Ishak211296 # your X handle
-scholar_userid: IBUjNFYAAAAJ # your Google Scholar ID
-scholar_metrics_api: # URL of the deployed Cloudflare Worker from cloudflare/scholar-metrics, e.g. https://scholar-metrics.<subdomain>.workers.dev
+scholar_userid: IBUjNFYAAAAJ # your Google Scholar ID (also used by bin/scholar-metrics.mjs for the daily metrics update)
 linkedin_username: ishak-ayad # your LinkedIn user name
 acm_id: # your dl.acm.org/profile/id
 blogger_url: # your blogger URL
@@ -128,8 +127,8 @@ bing_site_verification: # out your bing-site-verification ID (Bing Webmaster)
 # -----------------------------------------------------------------------------
 
 blog_name: # blog_name will be displayed in your blog page
-blog_description: 
-permalink: 
+blog_description:
+permalink:
 
 # Pagination
 pagination:
@@ -210,7 +209,6 @@ exclude:
   - bin/
   - tests/
   - docs/
-  - cloudflare/
   - CONTRIBUTING.md
   - CUSTOMIZE.md
   - Dockerfile
@@ -329,7 +327,7 @@ filtered_bibtex_keywords:
   [abbr, abstract, altmetric, arxiv, bibtex_show, blog, code, html, pdf, poster, preview, research_topic, selected, slides, supp, video, website]
 
 # Maximum number of authors to be shown for each publication (more authors are visible on click)
-max_author_limit:  # leave blank to always show all authors
+max_author_limit: # leave blank to always show all authors
 more_authors_animation_delay: 10 # more authors are revealed on click using animation; smaller delay means faster animation
 
 # Enables publication thumbnails. If disabled, none of the publications will display thumbnails, even if specified in the bib entry.

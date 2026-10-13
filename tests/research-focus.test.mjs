@@ -15,7 +15,7 @@ import {
   validateReport,
   validateScholarMetrics,
 } from "../assets/js/research-focus.mjs";
-import scholarWorker, { parseScholarMetrics } from "../cloudflare/scholar-metrics/worker.mjs";
+import { fetchScholarMetrics, parseScholarMetrics, sameMetrics } from "../bin/scholar-metrics.mjs";
 
 const topics = JSON.parse(readFileSync(new URL("../_data/research_topics.json", import.meta.url), "utf8"));
 const record = (key, title, abstract = "Computed tomography.", extra = {}) => ({ key, title, abstract, year: "2026", ...extra });
@@ -232,7 +232,7 @@ test("failed Scholar metric requests keep the metrics block hidden", async () =>
   }
 });
 
-test("Scholar Worker parses profile metrics and reports captchas", () => {
+test("Scholar metrics script parses profile metrics and reports captchas", () => {
   const cell = (value) => `<td class="gsc_rsb_std">${value}</td>`;
   const html = `<table id="gsc_rsb_st"><tr>${cell("1,234")}${cell(37)}</tr><tr>${cell(3)}${cell(3)}</tr><tr>${cell(1)}${cell(1)}</tr></table>`;
   assert.deepEqual(parseScholarMetrics(html), {
@@ -244,15 +244,19 @@ test("Scholar Worker parses profile metrics and reports captchas", () => {
   assert.throws(() => parseScholarMetrics("<html></html>"), /layout/);
 });
 
-test("Scholar Worker serves only the configured profile with CORS headers", async () => {
-  const env = { SCHOLAR_USER_ID: "", ALLOWED_ORIGINS: "https://ishak96.github.io" };
-  const request = new Request("https://worker.example/?user=someone-else", { headers: { Origin: "https://ishak96.github.io" } });
-  const response = await scholarWorker.fetch(request, env, {});
-  assert.equal(response.status, 500);
-  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "https://ishak96.github.io");
-  const preflight = await scholarWorker.fetch(new Request("https://worker.example/", { method: "OPTIONS" }), env, {});
-  assert.equal(preflight.status, 204);
-  assert.equal((await scholarWorker.fetch(new Request("https://worker.example/", { method: "POST" }), env, {})).status, 405);
+test("Scholar metrics script reports blocked requests and detects real changes", async () => {
+  await assert.rejects(
+    fetchScholarMetrics("x", async () => ({ ok: false, status: 403 })),
+    /HTTP 403/
+  );
+  const cell = (value) => `<td class="gsc_rsb_std">${value}</td>`;
+  const html = `<table id="gsc_rsb_st"><tr>${cell(37)}${cell(37)}</tr><tr>${cell(3)}${cell(3)}</tr><tr>${cell(1)}${cell(1)}</tr></table>`;
+  const fresh = await fetchScholarMetrics("x", async () => ({ ok: true, text: async () => html }), new Date("2026-01-02T00:00:00Z"));
+  assert.equal(fresh.fetched_at, "2026-01-02T00:00:00.000Z");
+  assert.equal(fresh.citations.all, 37);
+  assert.equal(sameMetrics(fresh, { ...fresh, fetched_at: "2026-02-01T00:00:00Z" }), true);
+  assert.equal(sameMetrics(fresh, { ...fresh, citations: { all: 38, recent: 38 } }), false);
+  assert.equal(sameMetrics(null, fresh), false);
 });
 
 test("highlights count oral papers and award notes", () => {
