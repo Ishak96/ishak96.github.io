@@ -1,0 +1,68 @@
+<section
+  class="research-focus"
+  aria-labelledby="research-focus-title"
+  data-research-focus
+  data-source="{{ '/assets/data/research-publications.json' | relative_url }}?v={{ site.data.research_publications_hash }}"
+  data-topics="{{ site.data.research_topics | jsonify | escape }}"
+  {% assign scholar_metrics_api = site.scholar_metrics_api %}
+  {% if jekyll.environment == 'development' %}
+    {% assign scholar_metrics_api = 'http://localhost:8787/' %}
+  {% endif %}
+  {% if scholar_metrics_api %}
+    data-scholar-source="{{ scholar_metrics_api }}"
+  {% endif %}
+>
+  <div class="scholar-metrics" data-scholar-metrics hidden>
+    <h2>Google Scholar Metrics</h2>
+    <dl class="scholar-metrics-grid">
+      <div class="scholar-metric">
+        <dt>Citations</dt>
+        <dd data-scholar-value="citations"></dd>
+      </div>
+      <div class="scholar-metric">
+        <dt>h-index</dt>
+        <dd data-scholar-value="h_index"></dd>
+      </div>
+      <div class="scholar-metric">
+        <dt>i10-index</dt>
+        <dd data-scholar-value="i10_index"></dd>
+      </div>
+    </dl>
+    <p class="scholar-metrics-meta" data-scholar-meta></p>
+  </div>
+  <div class="publication-highlights" data-publication-highlights hidden>
+    <h2>Publication Highlights</h2>
+    <dl class="scholar-metrics-grid publication-highlights-grid">
+      <div class="scholar-metric publication-highlight">
+        <dt><i class="fa-solid fa-microphone highlight-icon highlight-icon-oral" aria-hidden="true"></i> Oral papers</dt>
+        <dd data-highlight-value="orals"></dd>
+      </div>
+      <div class="scholar-metric publication-highlight">
+        <dt><i class="fa-solid fa-trophy highlight-icon highlight-icon-award" aria-hidden="true"></i> Best paper awards</dt>
+        <dd data-highlight-value="awards"></dd>
+      </div>
+    </dl>
+  </div>
+  <h2 id="research-focus-title">Research Focus Across Publications</h2>
+  <p>Distribution of publications by primary research topic &mdash; <span data-research-total></span>this site's selected bibliography.</p>
+  <p data-research-status role="status">Loading research-focus chart...</p>
+  <noscript>Enable JavaScript to generate the chart. The publication list below remains available.</noscript>
+  <div data-research-content hidden>
+    <div class="research-focus-charts">
+      <figure class="research-focus-visual">
+        <h3>Research topics</h3>
+        <div data-research-pie></div>
+      </figure>
+      <figure class="research-focus-visual">
+        <h3>Journals &amp; conferences</h3>
+        <div data-venue-pie></div>
+      </figure>
+    </div>
+    <p class="research-focus-hint">Hover over, focus, or tap a slice for details. Slice sizes represent publication counts.</p>
+    <details data-research-notes hidden>
+      <summary>Classification and metadata notes</summary>
+      <ul data-research-warnings></ul>
+    </details>
+  </div>
+</section>
+<script src="{{ '/assets/js/research-focus.mjs' | relative_url | bust_file_cache }}" type="module"></script>

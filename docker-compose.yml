@@ -19,3 +19,12 @@ services:
       - .:/srv/jekyll
     environment:
       - JEKYLL_ENV=development
+  # Local copy of the live Google Scholar metrics Worker (cloudflare/scholar-metrics).
+  scholar-metrics:
+    image: node:20-alpine
+    working_dir: /app
+    command: node dev-server.mjs
+    ports:
+      - 8787:8787
+    volumes:
+      - ./cloudflare/scholar-metrics:/app:ro

@@ -67,6 +67,7 @@ og_image: assets/img/prof_pic.jpg # The site-wide (default for all links) Open G
 github_username: ishak96 # your GitHub user name
 x_username: Ishak211296 # your X handle
 scholar_userid: IBUjNFYAAAAJ # your Google Scholar ID
+scholar_metrics_api: # URL of the deployed Cloudflare Worker from cloudflare/scholar-metrics, e.g. https://scholar-metrics.<subdomain>.workers.dev
 linkedin_username: ishak-ayad # your LinkedIn user name
 acm_id: # your dl.acm.org/profile/id
 blogger_url: # your blogger URL
@@ -207,6 +208,9 @@ kramdown:
 include: ["_pages"]
 exclude:
   - bin/
+  - tests/
+  - docs/
+  - cloudflare/
   - CONTRIBUTING.md
   - CUSTOMIZE.md
   - Dockerfile
@@ -322,7 +326,7 @@ enable_publication_badges:
 
 # Filter out certain bibtex entry keywords used internally from the bib output
 filtered_bibtex_keywords:
-  [abbr, abstract, altmetric, arxiv, bibtex_show, blog, code, html, pdf, poster, preview, selected, slides, supp, video, website]
+  [abbr, abstract, altmetric, arxiv, bibtex_show, blog, code, html, pdf, poster, preview, research_topic, selected, slides, supp, video, website]
 
 # Maximum number of authors to be shown for each publication (more authors are visible on click)
 max_author_limit:  # leave blank to always show all authors

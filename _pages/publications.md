@@ -8,12 +8,22 @@ nav: true
 ---
 
 <!-- _pages/publications.md -->
+<div class="publications-layout">
+<aside class="publications-sidebar" aria-label="Publication metrics and research focus">
+{% include research_focus.liquid %}
+</aside>
+<div class="publications-main">
+
 {% include bib_search.liquid %}
+
 <div class="publications">
 
 {%- for y in page.years %}
+
   <h2 class="year">{{y}}</h2>
   {% bibliography -f papers -q @*[year={{y}}]* --group_by none %}
 {% endfor %}
 
+</div>
+</div>
 </div>

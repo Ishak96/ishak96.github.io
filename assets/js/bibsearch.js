@@ -56,6 +56,50 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   };
 
+  // ── Field values (for the year / conference dropdowns) ───────────────────
+
+  const yearOf = (li) => {
+    const ol = li.closest("ol.bibliography");
+    let sibling = ol ? ol.previousElementSibling : null;
+    while (sibling) {
+      if (sibling.tagName === "H2" && sibling.classList.contains("year")) {
+        const year = sibling.textContent.trim();
+        return { key: year, label: year };
+      }
+      sibling = sibling.previousElementSibling;
+    }
+    return { key: "", label: "" };
+  };
+
+  const conferenceOf = (li) => {
+    const venueEl = li.querySelector(".periodical em") || li.querySelector(".periodical");
+    const full = venueEl
+      ? venueEl.textContent
+          .replace(/\s+/g, " ")
+          .trim()
+          .replace(/^In\s+/i, "")
+          .replace(/,\s*\d{4}$/, "")
+      : "";
+    if (!full) return { key: "", label: "" };
+    // Prefer the acronym in parentheses, e.g. "(MICCAI)" or "(EUSIPCO 2026)"
+    const acronym = full.match(/\(([^()]+)\)\s*$/);
+    const label = acronym ? acronym[1].replace(/\s+\d{4}$/, "").trim() : full.replace(/^IEEE\s+/i, "");
+    return { key: label.toLowerCase(), label, full };
+  };
+
+  const collectChoices = (searchType) => {
+    const valueOf = searchType === "year" ? yearOf : conferenceOf;
+    const choices = new Map();
+    document.querySelectorAll(".publications .bibliography > li").forEach((li) => {
+      const value = valueOf(li);
+      if (!value.key) return;
+      const entry = choices.get(value.key) || { ...value, count: 0 };
+      entry.count += 1;
+      choices.set(value.key, entry);
+    });
+    return [...choices.values()].sort((a, b) => (searchType === "year" ? Number(b.label) - Number(a.label) : a.label.localeCompare(b.label)));
+  };
+
   // ── Filter ────────────────────────────────────────────────────────────────
 
   const filterItems = (searchTerm, searchType) => {
@@ -87,42 +131,31 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
       }
-    } else {
-      // Field-specific search (title, conference, or year) – plain text match
+    } else if (searchType === "year" || searchType === "conference") {
+      // Exact match against the value chosen in the dropdown
       if (CSS.highlights) {
         CSS.highlights.delete("search");
       }
-      if (searchType === "year") {
-        listItems.forEach((li) => {
-          const ol = li.closest("ol.bibliography");
-          let yearText = "";
-          if (ol) {
-            let sibling = ol.previousElementSibling;
-            while (sibling) {
-              if (sibling.tagName === "H2" && sibling.classList.contains("year")) {
-                yearText = sibling.textContent.trim().toLowerCase();
-                break;
-              }
-              sibling = sibling.previousElementSibling;
-            }
-          }
-          if (yearText.indexOf(searchTerm) === -1) {
-            li.classList.add("unloaded");
-          }
-        });
-      } else {
-        const childSelector = searchType === "title" ? ".title" : ".periodical";
-        listItems.forEach((li) => {
-          const targets = li.querySelectorAll(childSelector);
-          const text = Array.from(targets)
-            .map((el) => el.innerText)
-            .join(" ")
-            .toLowerCase();
-          if (text.indexOf(searchTerm) === -1) {
-            li.classList.add("unloaded");
-          }
-        });
+      const valueOf = searchType === "year" ? yearOf : conferenceOf;
+      listItems.forEach((li) => {
+        if (valueOf(li).key !== searchTerm) {
+          li.classList.add("unloaded");
+        }
+      });
+    } else {
+      // Title search – plain text match
+      if (CSS.highlights) {
+        CSS.highlights.delete("search");
       }
+      listItems.forEach((li) => {
+        const text = Array.from(li.querySelectorAll(".title"))
+          .map((el) => el.innerText)
+          .join(" ")
+          .toLowerCase();
+        if (text.indexOf(searchTerm) === -1) {
+          li.classList.add("unloaded");
+        }
+      });
     }
 
     hideEmptyYearGroups();
@@ -162,18 +195,48 @@ document.addEventListener("DOMContentLoaded", function () {
     return typeSelect ? typeSelect.value : "all";
   };
 
+  const bibsearchInput = document.getElementById("bibsearch");
+  const choiceSelect = document.getElementById("bibsearch-choice");
+  const usesChoices = (searchType) => Boolean(choiceSelect) && (searchType === "year" || searchType === "conference");
+
+  /** Show a dropdown of existing values for year/conference, a text box otherwise. */
+  const updateSearchControl = (searchType) => {
+    const showChoices = usesChoices(searchType);
+    if (bibsearchInput) bibsearchInput.hidden = showChoices;
+    if (!choiceSelect) return;
+    choiceSelect.hidden = !showChoices;
+    if (!showChoices) return;
+
+    const noun = searchType === "year" ? "years" : "conferences";
+    choiceSelect.setAttribute("aria-label", `Choose a ${searchType}`);
+    choiceSelect.replaceChildren(new Option(`All ${noun}`, ""));
+    collectChoices(searchType).forEach((choice) => {
+      const option = new Option(`${choice.label} (${choice.count})`, choice.key);
+      if (choice.full) option.title = choice.full;
+      choiceSelect.append(option);
+    });
+  };
+
+  const currentSearchTerm = () => {
+    const searchType = getSearchType();
+    if (usesChoices(searchType)) return choiceSelect.value;
+    return bibsearchInput ? bibsearchInput.value.toLowerCase() : "";
+  };
+
   const updateInputField = () => {
     const hashValue = decodeURIComponent(window.location.hash.substring(1)); // Remove the '#' character
-    const inputEl = document.getElementById("bibsearch");
-    if (inputEl) {
-      inputEl.value = hashValue;
+    const searchType = getSearchType();
+    if (usesChoices(searchType)) {
+      const key = hashValue.toLowerCase();
+      choiceSelect.value = [...choiceSelect.options].some((option) => option.value === key) ? key : "";
+    } else if (bibsearchInput) {
+      bibsearchInput.value = hashValue;
     }
-    filterItems(hashValue, getSearchType());
+    filterItems(currentSearchTerm(), searchType);
   };
 
   // Sensitive search. Only start searching if there's been no input for 300 ms
   let timeoutId;
-  const bibsearchInput = document.getElementById("bibsearch");
   if (bibsearchInput) {
     bibsearchInput.addEventListener("input", function () {
       clearTimeout(timeoutId); // Clear the previous timeout
@@ -182,13 +245,16 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Re-run filter when search type changes
+  if (choiceSelect) {
+    choiceSelect.addEventListener("change", () => filterItems(choiceSelect.value, getSearchType()));
+  }
+
+  // Switch control and re-run filter when search type changes
   const bibsearchType = document.getElementById("bibsearch-type");
   if (bibsearchType) {
     bibsearchType.addEventListener("change", function () {
-      const inputEl = document.getElementById("bibsearch");
-      const searchTerm = inputEl ? inputEl.value.toLowerCase() : "";
-      filterItems(searchTerm, this.value);
+      updateSearchControl(this.value);
+      filterItems(currentSearchTerm(), this.value);
     });
   }
 
@@ -211,5 +277,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   window.addEventListener("hashchange", updateInputField); // Update the filter when the hash changes
 
+  updateSearchControl(getSearchType()); // Browsers may restore the field selection on reload
   updateInputField(); // Update filter when page loads
 });

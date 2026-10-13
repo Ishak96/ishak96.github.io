@@ -1,0 +1,33 @@
+[
+  {
+    "id": "incomplete-ct",
+    "label": "Incomplete-Data CT Reconstruction",
+    "color": "#8e99aa",
+    "patterns": ["sparse[ -]?view", "limited[ -]?angle", "incomplete data", "incomplete projection"]
+  },
+  {
+    "id": "compton",
+    "label": "Compton Tomography",
+    "color": "#b08b6f",
+    "patterns": ["compton"]
+  },
+  {
+    "id": "eit",
+    "label": "Electrical Impedance Tomography (EIT)",
+    "color": "#829b8e",
+    "patterns": ["electrical impedance", "\\beit\\b", "mf[ -]eit"]
+  },
+  {
+    "id": "motion-ct",
+    "label": "Motion-Aware CT Reconstruction",
+    "color": "#b6a1bd",
+    "patterns": ["motion[ -](?:compensat|correction|aware)", "rigid motion", "motion artifacts"],
+    "required_context": ["computed tomography", "\\b(?:ct|cbct)\\b", "cone[ -]beam"]
+  },
+  {
+    "id": "other",
+    "label": "Other Research Topics",
+    "color": "#b8b1a3",
+    "patterns": []
+  }
+]

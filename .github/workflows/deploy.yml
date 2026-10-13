@@ -15,6 +15,10 @@ on:
       - "**.yml"
       - "Gemfile"
       - "Gemfile.lock"
+      - "tests/**"
+      - "_data/research_topics.json"
+      - "_plugins/publication-data.rb"
+      - "_sass/**"
       - "!.github/workflows/axe.yml"
       - "!.github/workflows/broken-links.yml"
       - "!.github/workflows/deploy-docker-tag.yml"
@@ -42,6 +46,10 @@ on:
       - "**.yml"
       - "Gemfile"
       - "Gemfile.lock"
+      - "tests/**"
+      - "_data/research_topics.json"
+      - "_plugins/publication-data.rb"
+      - "_sass/**"
       - "!.github/workflows/axe.yml"
       - "!.github/workflows/broken-links.yml"
       - "!.github/workflows/deploy-docker-tag.yml"
@@ -77,6 +85,8 @@ jobs:
         with:
           python-version: "3.13"
           cache: "pip" # caching pip dependencies
+      - name: Test research-focus JavaScript
+        run: node --test tests/research-focus.test.mjs
       - name: Update _config.yml ⚙️
         uses: fjogeleit/yaml-update-action@main
         with:

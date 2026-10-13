@@ -123,7 +123,7 @@ _styles: >
     box-shadow: var(--shadow-sm); transition: transform .08s ease, border-color .12s ease;
     text-decoration: none;
   }
-  .btn:hover { transform: translateY(-1px); border-color: var(--blue-border); text-decoration: none; }
+  .btn:hover { transform: translateY(-1px); border-color: var(--blue-border); color: var(--ink); text-decoration: none; }
   .btn.primary { background: var(--navy); border-color: var(--navy); color: #ece9e2; }
   .section-block { padding: 36px 0; border-top: 1px solid var(--line); scroll-margin-top: 92px; }
   .section-block:first-of-type { border-top: none; }
