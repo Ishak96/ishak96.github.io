@@ -2,19 +2,23 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  addTopVenues,
   analyzeHighlights,
   analyzePublications,
   analyzeVenues,
   classifyPublication,
+  classifyPublicationVenues,
   createChartSvg,
   createPieSvg,
   initializeResearchFocus,
   initializeScholarMetrics,
   plainText,
+  sliceLabelFits,
   toCsv,
   validateReport,
   validateScholarMetrics,
 } from "../assets/js/research-focus.mjs";
+import { classifyVenue, matchVenue, topVenue, validateVenueCatalog, venueScore } from "../assets/js/venue-ranking.mjs";
 import { fetchScholarMetrics, parseScholarMetrics, sameMetrics } from "../bin/scholar-metrics.mjs";
 
 const topics = JSON.parse(readFileSync(new URL("../_data/research_topics.json", import.meta.url), "utf8"));
@@ -143,36 +147,240 @@ test("title formatting and exported data preserve actual titles safely", () => {
   assert.ok(!svg.includes("& <test>"));
 });
 
-test("venue chart groups publications and shows venue names on slices", () => {
+const catalog = JSON.parse(readFileSync(new URL("../_data/venue_categories.json", import.meta.url), "utf8"));
+const clone = (value) => JSON.parse(JSON.stringify(value));
+const realVenues = {
+  "34th European Signal Processing Conference (EUSIPCO 2026)": ["signal-image-processing", "eusipco"],
+  "Proceedings of the International Conference on Image Processing and Computer Vision (IPCV)": ["computer-vision", "ipcv"],
+  "IEEE International Conference on Signal-Image Technology & Internet-Based Systems (SITIS)": ["signal-image-processing", "sitis"],
+  "IEEE Medical Imaging Conference (MIC)": ["medical-imaging", "nss-mic"],
+  "IEEE IPTA": ["signal-image-processing", "ipta"],
+  "Proceedings of the International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI)": ["medical-imaging", "miccai"],
+  "Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)": ["computer-vision", "cvpr"],
+};
+const venueReport = (entries) =>
+  analyzePublications(
+    entries.map(([venue, kind = "proceedings"], index) => record(`p${index}`, `Paper ${index}`, "CT.", { venue, venue_kind: kind })),
+    topics
+  );
+
+test("venue catalog follows one schema with no duplicate venues, acronyms, or names", () => {
+  validateVenueCatalog(catalog);
+  assert.ok(catalog.venues.length >= 150);
+  const ids = catalog.venues.map((venue) => venue.id);
+  assert.equal(new Set(ids).size, ids.length);
+  const categoryIds = new Set(catalog.categories.map((category) => category.id));
+  for (const venue of catalog.venues) {
+    assert.ok(["conference", "journal", "preprint"].includes(venue.type), venue.id);
+    assert.ok(categoryIds.has(venue.primary_category), venue.id);
+    if (venue.ranking) {
+      const system = catalog.ranking_systems[venue.ranking.system];
+      assert.equal(system.kind, "formal");
+      assert.equal(system.applies_to, venue.type, venue.id);
+      assert.ok(venue.ranking.listed_as, venue.id);
+    } else {
+      assert.ok(venue.ranking_note, `${venue.id} must explain why it is unranked`);
+    }
+    if (venue.internal_assessment) assert.equal(venue.ranking, null, venue.id);
+  }
+  assert.ok(catalog.venues.some((venue) => venue.ranking?.system === "CORE2023"));
+  assert.ok(catalog.venues.some((venue) => venue.ranking?.system === "SJR2025"));
+  assert.throws(() => validateVenueCatalog({ ...clone(catalog), venues: [...catalog.venues, catalog.venues[0]] }), /Duplicate venue identifier/);
+  const duplicateAcronym = clone(catalog);
+  duplicateAcronym.venues[1].acronyms = ["CVPR"];
+  assert.throws(() => validateVenueCatalog(duplicateAcronym), /Acronym CVPR/);
+  const mixed = clone(catalog);
+  mixed.venues[0].internal_assessment = { score: 2, rationale: "test" };
+  assert.throws(() => validateVenueCatalog(mixed), /both a formal ranking and an internal assessment/);
+  const wrongSystem = clone(catalog);
+  wrongSystem.venues[0].ranking = { system: "SJR2025", value: "Q1", listed_as: "x" };
+  assert.throws(() => validateVenueCatalog(wrongSystem), /does not rank conferences/);
+  const noOther = clone(catalog);
+  noOther.categories = noOther.categories.filter((category) => category.id !== "other");
+  assert.throws(() => validateVenueCatalog(noOther), /'other' fallback/);
+  const badKeyword = clone(catalog);
+  badKeyword.categories[0].keywords = ["("];
+  assert.throws(() => validateVenueCatalog(badKeyword));
+});
+
+test("the Vision category is consistently named Computer Vision", () => {
+  const labels = catalog.categories.map((category) => category.label);
+  assert.ok(labels.includes("Computer Vision"));
+  assert.ok(!labels.includes("Vision"));
+  assert.ok(catalog.categories.every((category) => !("short_label" in category)));
+  assert.equal(new Set(labels).size, labels.length);
+});
+
+test("every current bibliography venue is matched to its catalog record", () => {
+  for (const [venue, [category, id]] of Object.entries(realVenues)) {
+    const result = classifyVenue(venue, catalog, { kind: "proceedings" });
+    assert.equal(result.categoryId, category, venue);
+    assert.equal(result.venue?.id, id, venue);
+    assert.equal(result.method, "catalog");
+  }
+});
+
+test("venue matching respects venue type, exact journal names, workshops, and exclusions", () => {
+  const match = (text, kind) => matchVenue(text, catalog, kind)?.id ?? null;
+  assert.equal(match("IEEE Transactions on Medical Imaging", "journal"), "tmi");
+  assert.equal(match("IEEE Trans. Med. Imaging", "journal"), "tmi");
+  assert.equal(match("Pattern Recognition", "journal"), "pattern-recognition");
+  assert.equal(match("Pattern Recognition Letters", "journal"), "prl");
+  assert.equal(match("IEEE Transactions on Medical Imaging", "proceedings"), null);
+  assert.equal(match("Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)", "proceedings"), null);
+  assert.equal(match("CVPR Workshops", "proceedings"), null);
+  assert.equal(match("Simulation and Synthesis in Medical Imaging (SASHIMI) workshop, MICCAI", "proceedings"), "sashimi");
+  assert.equal(match("Findings of the Association for Computational Linguistics: EMNLP 2023", "proceedings"), null);
+  assert.equal(match("Proceedings of NAACL-HLT 2019, Association for Computational Linguistics", "proceedings"), "naacl");
+  assert.equal(match("SIGGRAPH Asia 2024 Conference Papers", "proceedings"), null);
+  assert.equal(match("International Conference on Image Processing and Computer Vision", "proceedings"), "ipcv");
+  assert.equal(match("IEEE International Conference on Image Processing (ICIP)", "proceedings"), "icip");
+  assert.equal(match("Annual MICROSCOPY meeting", "proceedings"), null);
+  assert.equal(match("arXiv preprint arXiv:2401.00001", ""), "arxiv");
+});
+
+test("uncatalogued venues fall back to keywords, then Other Venues, and overrides win", () => {
+  assert.deepEqual(classifyVenue("Journal of Applied Signal Processing Methods", catalog, { kind: "journal" }), {
+    categoryId: "signal-image-processing",
+    categoryIds: ["signal-image-processing"],
+    venue: null,
+    method: "keywords",
+  });
+  assert.equal(classifyVenue("Journal of Gardening Studies", catalog).categoryId, "other");
+  assert.equal(classifyVenue("", catalog).method, "fallback");
+  assert.equal(classifyVenue("Journal of Gardening Studies", catalog, { override: "Computer Vision" }).categoryId, "computer-vision");
+  const overridden = classifyVenue("IEEE IPTA", catalog, { override: "machine-learning", kind: "proceedings" });
+  assert.equal(overridden.categoryId, "machine-learning");
+  assert.equal(overridden.venue.id, "ipta");
+  assert.throws(() => classifyVenue("CVPR", catalog, { override: "astronomy" }), /Unknown venue_category/);
+});
+
+test("venue scores use the documented ranking systems and internal assessments", () => {
+  const venue = (id) => catalog.venues.find((item) => item.id === id);
+  assert.deepEqual(venueScore(venue("cvpr"), catalog), {
+    score: 4,
+    formal: true,
+    basis: "CORE 2023: A*",
+    index: catalog.venues.indexOf(venue("cvpr")),
+  });
+  assert.equal(venueScore(venue("miccai"), catalog).basis, "CORE 2023: A");
+  assert.equal(venueScore(venue("tmi"), catalog).basis, "SJR 2025: Q1");
+  assert.equal(venueScore(venue("eusipco"), catalog).formal, false);
+  assert.equal(venueScore(venue("ipta"), catalog), null);
+  assert.equal(venueScore(venue("arxiv"), catalog), null);
+});
+
+test("top venue is the single highest-ranked venue, with deterministic ties", () => {
+  const venue = (id) => catalog.venues.find((item) => item.id === id);
+  assert.equal(topVenue([venue("ipcv"), venue("cvpr")], catalog).name, "CVPR");
+  assert.equal(topVenue([venue("nss-mic"), venue("miccai"), venue("miccai")], catalog).name, "MICCAI");
+  assert.equal(topVenue([venue("sitis"), venue("eusipco"), venue("ipta")], catalog).name, "EUSIPCO");
+  assert.equal(topVenue([venue("ipta"), venue("sitis")], catalog), null);
+  assert.equal(topVenue([], catalog), null);
+  // Same score: formal ranking beats an internal assessment, whatever the input order.
+  assert.equal(topVenue([venue("eusipco"), venue("icassp")], catalog).name, "ICASSP");
+  assert.equal(topVenue([venue("icassp"), venue("eusipco")], catalog).name, "ICASSP");
+  // Same score and same evidence type: earlier catalog entry wins, independent of input order.
+  assert.equal(topVenue([venue("iccv"), venue("cvpr")], catalog).name, "CVPR");
+  assert.equal(topVenue([venue("cvpr"), venue("iccv")], catalog).name, "CVPR");
+  // A fictitious tie created through the data also stays deterministic.
+  const tied = clone(catalog);
+  tied.venues.find((item) => item.id === "ipta").internal_assessment = { score: 2, rationale: "test" };
+  const tiedVenue = (id) => tied.venues.find((item) => item.id === id);
+  const expected = tied.venues.findIndex((item) => item.id === "eusipco") < tied.venues.findIndex((item) => item.id === "ipta") ? "EUSIPCO" : "IPTA";
+  assert.equal(topVenue([tiedVenue("ipta"), tiedVenue("eusipco")], tied).name, expected);
+  assert.equal(topVenue([tiedVenue("eusipco"), tiedVenue("ipta")], tied).name, expected);
+});
+
+test("venue chart groups by field, plots only present fields, and reports one top venue", () => {
+  const report = venueReport(Object.keys(realVenues).flatMap((venue) => (venue.includes("MICCAI") ? [[venue], [venue]] : [[venue]])));
+  const venues = analyzeVenues(report, catalog);
+  assert.equal(venues.total, 8);
+  assert.deepEqual(
+    venues.categories.map((category) => [category.id, category.label, category.count, category.percentage, category.topVenue?.name]),
+    [
+      ["medical-imaging", "Medical Imaging & Image Computing", 3, 37.5, "MICCAI"],
+      ["computer-vision", "Computer Vision", 2, 25, "CVPR"],
+      ["signal-image-processing", "Signal & Image Processing", 3, 37.5, "EUSIPCO"],
+    ]
+  );
+  assert.equal(venues.categories[1].topVenue.basis, "CORE 2023: A*");
+  assert.match(venues.categories[2].topVenue.basis, /Internal assessment/);
+  assert.deepEqual(venues.categories[0].venues, [
+    { name: "MIC", count: 1 },
+    { name: "MICCAI", count: 2 },
+  ]);
+  assert.deepEqual(venues.warnings, []);
+  const svg = createPieSvg(venues, { id: "venues", title: "Journals and conferences by field", interactive: true });
+  assert.ok(svg.includes("venues-pie-title"));
+  assert.ok(svg.includes('tabindex="0" role="button"'));
+  assert.ok(svg.includes("Computer Vision: 2 publications, 25%. Accepted at top venue: CVPR (CORE 2023: A*)"));
+  assert.ok(!svg.includes(">Computer Vision</text>"), "category names belong in the legend, not inside slices");
+});
+
+test("publishing in a more prestigious venue updates the top venue automatically", () => {
+  const base = [["IEEE IPTA"], ["34th European Signal Processing Conference (EUSIPCO 2026)"]];
+  const before = analyzeVenues(venueReport(base), catalog).categories.find((category) => category.id === "signal-image-processing");
+  assert.equal(before.topVenue.name, "EUSIPCO");
+  const after = analyzeVenues(venueReport([...base, ["IEEE Transactions on Image Processing", "journal"]]), catalog).categories.find(
+    (category) => category.id === "signal-image-processing"
+  );
+  assert.equal(after.count, 3);
+  assert.equal(after.topVenue.name, "TIP");
+  assert.equal(after.topVenue.basis, "SJR 2025: Q1");
+  const vision = analyzeVenues(venueReport([["IEEE IPTA"], ["IPCV 2024"], ["European Conference on Computer Vision (ECCV)"]]), catalog);
+  assert.equal(vision.categories.find((category) => category.id === "computer-vision").topVenue.name, "ECCV");
+});
+
+test("unranked or unknown venues are handled gracefully with warnings", () => {
+  const venues = analyzeVenues(venueReport([["Journal of Gardening Studies", "journal"], ["", ""], ["IEEE IPTA"]]), catalog);
+  assert.deepEqual(
+    venues.categories.map((category) => [category.id, category.count, category.topVenue]),
+    [
+      ["signal-image-processing", 1, null],
+      ["other", 2, null],
+    ]
+  );
+  assert.equal(venues.warnings.length, 2);
+  assert.deepEqual(venues.categories[1].venues, [
+    { name: "Journal of Gardening Studies", count: 1 },
+    { name: "Venue not specified", count: 1 },
+  ]);
+});
+
+test("topic chart categories also carry the top venue of their publications", () => {
   const report = analyzePublications(
     [
-      record("a", "Sparse-view CT reconstruction", "CT.", { venue: "Proceedings of MICCAI (MICCAI)" }),
-      record("b", "Compton tomography reconstruction", "CST.", { venue: "Proceedings of MICCAI (MICCAI)" }),
-      record("c", "EIT reconstruction", "EIT.", { venue: "IEEE SITIS" }),
-      record("d", "Motion compensated CT", "CT."),
+      record("a", "Sparse-view CT reconstruction", "CT.", { venue: "IEEE IPTA", venue_kind: "proceedings" }),
+      record("b", "Limited-angle CT artifact reduction", "CT.", {
+        venue: "Medical Image Computing and Computer Assisted Intervention",
+        venue_kind: "proceedings",
+      }),
+      record("c", "Compton tomography", "CT.", { venue: "IEEE IPTA", venue_kind: "proceedings" }),
     ],
     topics
   );
-  const venues = analyzeVenues(report);
-  assert.equal(venues.total, 4);
+  const withTop = addTopVenues(report, classifyPublicationVenues(report, catalog), catalog);
   assert.deepEqual(
-    venues.categories.map((category) => category.count),
-    [2, 1, 1]
+    withTop.categories.map((category) => [category.id, category.topVenue?.name ?? null]),
+    [
+      ["incomplete-ct", "MICCAI"],
+      ["compton", null],
+    ]
   );
-  assert.deepEqual(
-    venues.categories.map((category) => category.percentage),
-    [50, 25, 25]
-  );
-  assert.equal(venues.categories[0].shortLabel, "MICCAI");
-  assert.equal(venues.categories[1].shortLabel, "SITIS");
-  assert.equal(venues.categories[2].label, "Venue not specified");
-  const svg = createPieSvg(venues, { id: "venues", title: "Journals and conferences", interactive: true });
-  assert.ok(svg.includes("venues-pie-title"));
-  assert.ok(svg.includes('tabindex="0" role="button"'));
-  assert.ok(svg.includes(">MICCAI</text>"));
-  assert.ok(svg.includes("50%"));
+  validateReport(withTop);
 });
 
+test("slice percentages are drawn only when they fit and legends are not squeezed into slices", () => {
+  assert.equal(sliceLabelFits("38%", Math.PI * 0.75), true);
+  assert.equal(sliceLabelFits("3%", 0.2), false);
+  assert.equal(sliceLabelFits("100%", Math.PI * 2), true);
+  const report = venueReport([...Array(30).fill(["IEEE IPTA"]), ["CVPR"]]);
+  const svg = createPieSvg(analyzeVenues(report, catalog));
+  assert.ok(svg.includes(">97%</text>"));
+  assert.ok(!svg.includes(">3%</text>"));
+  assert.ok(svg.includes("Computer Vision: 1 publication, 3.23%"));
+});
 test("failed data requests expose an error rather than an empty success chart", async () => {
   const status = {
     textContent: "",

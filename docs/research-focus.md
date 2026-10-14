@@ -14,11 +14,12 @@ metadata only; it does not classify publications or render a chart.
 
 On visiting Publications, [the JavaScript module](../assets/js/research-focus.mjs)
 fetches this local JSON, classifies every record, computes counts/percentages,
-and draws two interactive SVG charts: research topics and journals/conferences.
-The page has no tables or permanent right-side legend. Hovering, focusing, or
-tapping a slice shows its full name, publication count, and percentage in a
-small frame. Escape or moving away dismisses it; venue abbreviations are shown
-on the venue slices. Charts stack vertically on small screens. On screens at least 1200px wide, the
+and draws two interactive SVG charts: research topics and journals/conferences
+grouped by field.
+Each chart has a colour legend beside it (below it in narrow containers); slices
+only show a percentage when it fits. Hovering, focusing, or tapping a slice or
+legend item shows its name, count, percentage, and the highest-ranked venue in a
+small frame. Escape or moving away dismisses it. Charts stack vertically on small screens. On screens at least 1200px wide, the
 Scholar metrics and both charts sit in a sticky right sidebar that stays in view
 while the publication list scrolls. If the sidebar is taller than the window, it
 scrolls with the page until its bottom is visible and then stays fixed.
@@ -46,6 +47,68 @@ and `other`; exact category labels are also accepted. Unknown overrides,
 duplicates, missing titles, or invalid totals produce an explicit chart error.
 Missing abstracts or years are counted with notes. Adding a justified category
 only requires editing the topic rules.
+
+## Venue fields and top venues
+
+Each publication's venue is its `booktitle`, or `journal` for articles (then
+`series`, `school`, `howpublished`). The exporter also records `venue_kind`
+(`journal` or `proceedings`). [The venue catalog](../_data/venue_categories.json)
+is published as `assets/data/venue-categories.json` and consumed by
+[venue-ranking.mjs](../assets/js/venue-ranking.mjs), which holds all
+classification and ranking logic (the chart module only draws).
+
+### Catalog schema
+
+- `categories`: `id`, `label`, `color`, `description`, `keywords`. Current fields:
+  Medical Imaging & Image Computing, Computer Vision, Signal & Image Processing,
+  Computational Imaging & Inverse Problems, Machine Learning & AI, Optimization &
+  Applied Mathematics, Robotics, Natural Language Processing, Remote Sensing &
+  Earth Observation, Computer Graphics & Multimedia, Data Mining & Information
+  Retrieval, Preprints, Other Venues.
+- `venues`: one record per venue with `id`, `abbreviation`, `name`, `type`
+  (`conference`, `journal`, `preprint`), `primary_category`,
+  `secondary_categories`, `acronyms` (case-sensitive whole words), optional
+  `name_aliases` / `exclude_patterns`, `ranking` (`{system, value, listed_as}` or
+  `null` with a `ranking_note`), and optional `internal_assessment`
+  (`{score, rationale}`, only when no formal ranking exists).
+- `ranking_systems` and `prestige_scale` document how ranks map to a 1-4 score.
+
+### Matching
+
+Venue text is normalised (case, punctuation, `&`, years/ordinals, and words such as
+"IEEE", "Proceedings", "International" are ignored). Journals only match journal
+records by exact name or acronym; proceedings only match conference records.
+Workshop proceedings never match the main conference. The longest name match wins.
+Unmatched venues fall back to category keywords, then to **Other Venues**, with a
+console warning. Only fields with at least one publication are plotted.
+
+### Ranking methodology
+
+- Conferences: [CORE 2023](https://portal.core.edu.au/conf-ranks/) — A\*=4, A=3, B=2, C=1.
+- Journals: best [SCImago SJR 2025](https://www.scimagojr.com/journalrank.php) quartile — Q1=3, Q2=2, Q3/Q4=1.
+- The 1-4 mapping is a site convention; CORE and SJR are not equivalent systems.
+- Venues absent from both systems have `ranking: null`. A few established venues
+  carry a documented `internal_assessment` instead, labelled "Internal assessment"
+  in the tooltip.
+
+For each slice, the top venue is the highest-scoring venue among that slice's
+publications. Ties go to a formal ranking over an internal assessment, then to the
+catalog order — never to date, citations, or alphabetical order. A slice with no
+ranked venue shows "Accepted at: no ranked venue yet". Hovering, focusing, or tapping a slice
+or legend item shows only that venue with an animated star (static with
+`prefers-reduced-motion`) and screen-reader text.
+
+### Adding venues or forcing a field
+
+New papers update counts and top venues automatically. To recognise a new venue,
+add a record to `venues` with its verified ranking (or `ranking: null` and a
+note). To force a field for one paper:
+
+```bibtex
+venue_category = {computer-vision},
+```
+
+Unknown `venue_category` values produce an explicit chart error.
 
 ## Google Scholar metrics
 
@@ -87,8 +150,8 @@ bundle exec jekyll build
 ```
 
 The tests cover classification, duplicate/missing metadata, rounding, SVG
-generation, venue grouping, and adding/editing a publication. Counts in production
-are never hardcoded. Missing venues remain counted as "Venue not specified".
+generation, venue matching and ranking, ties, unknown venues, and adding/editing a publication. Counts in production
+are never hardcoded. Missing or unrecognised venues are counted under "Other Venues".
 
 ## Current interpretation
 

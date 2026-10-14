@@ -4,6 +4,7 @@
   data-research-focus
   data-source="{{ '/assets/data/research-publications.json' | relative_url }}?v={{ site.data.research_publications_hash }}"
   data-topics="{{ site.data.research_topics | jsonify | escape }}"
+  data-venue-source="{{ '/assets/data/venue-categories.json' | relative_url }}?v={{ site.data.venue_categories_hash }}"
   data-scholar-source="{{ '/assets/data/scholar-metrics.json' | relative_url }}"
 >
   <div class="scholar-metrics" data-scholar-metrics hidden>
@@ -52,11 +53,13 @@
         <div data-research-pie></div>
       </figure>
       <figure class="research-focus-visual">
-        <h3>Journals &amp; conferences</h3>
+        <h3>Journals &amp; conferences by field</h3>
         <div data-venue-pie></div>
       </figure>
     </div>
-    <p class="research-focus-hint">Hover over, focus, or tap a slice for details. Slice sizes represent publication counts.</p>
+    <p class="research-focus-hint">
+      Hover over, focus, or tap a slice or legend entry for details and the highest-ranked venue. Slice sizes represent publication counts.
+    </p>
     <details data-research-notes hidden>
       <summary>Classification and metadata notes</summary>
       <ul data-research-warnings></ul>
