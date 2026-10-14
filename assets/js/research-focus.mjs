@@ -1,3 +1,5 @@
+import { classifyVenue, topVenue, validateVenueCatalog } from "./venue-ranking.mjs";
+
 const BACKGROUND = "#171c23";
 const TEXT = "#ece9e2";
 const MUTED = "#b8b1a3";
@@ -69,7 +71,7 @@ export function analyzePublications(records, topics) {
   const warnings = [];
   const publications = records.map((record) => {
     if (!record || typeof record !== "object") throw new Error("Invalid publication record.");
-    for (const field of ["key", "title", "abstract", "year", "venue", "doi", "research_topic"]) {
+    for (const field of ["key", "title", "abstract", "year", "venue", "doi", "research_topic", "venue_category", "venue_kind"]) {
       if (record[field] !== undefined && typeof record[field] !== "string") throw new Error(`Invalid publication field: ${field}`);
     }
     if (!record.key?.trim() || !plainText(record.title)) throw new Error("A publication is missing its key or title.");
@@ -92,6 +94,8 @@ export function analyzePublications(records, topics) {
       title,
       year,
       venue: plainText(record.venue ?? ""),
+      venueCategory: (record.venue_category ?? "").trim(),
+      venueKind: (record.venue_kind ?? "").trim(),
       categoryId: classification.categoryId,
       category: topics.find((topic) => topic.id === classification.categoryId).label,
       reason: classification.reason,
@@ -144,30 +148,101 @@ function escapeXml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character]);
 }
 
-export function analyzeVenues(report) {
-  const palette = ["#8e99aa", "#b08b6f", "#829b8e", "#b6a1bd", "#baa875", "#79a8ac", "#b8b1a3"];
-  const groups = new Map();
-  for (const paper of report.publications) {
-    const label = paper.venue || "Venue not specified";
-    if (!groups.has(label)) groups.set(label, []);
-    groups.get(label).push(paper);
-  }
-  const categories = [...groups].map(([label, papers], index) => ({
-    id: `venue-${index}`,
-    label,
-    shortLabel: label.match(/\(([A-Z][A-Z0-9/-]+)(?:\s+\d{4})?\)/)?.[1] || label.replace(/^IEEE\s+/, "").replace(/\s+\d{4}\b/g, ""),
-    color: palette[index % palette.length],
-    count: papers.length,
-    percentage: Math.round((10000 * papers.length) / report.total) / 100,
-    titles: papers.map((paper) => paper.title),
-  }));
-  const publications = report.publications.map((paper) => ({
-    ...paper,
-    categoryId: categories.find((category) => category.label === (paper.venue || "Venue not specified")).id,
-  }));
-  const result = { total: report.total, publications, categories };
+function percentageOf(count, total) {
+  return Math.round((10000 * count) / total) / 100;
+}
+
+export function venueShortName(venue) {
+  const text = plainText(venue);
+  if (!text) return "Venue not specified";
+  return (
+    text.match(/\(([A-Za-z][A-Za-z0-9/&-]+)(?:\s+'?\d{2,4})?\)/)?.[1] ||
+    text
+      .replace(/^IEEE\s+/, "")
+      .replace(/\s+'?\d{4}\b/g, "")
+      .trim()
+  );
+}
+
+function describeTopVenue(papers, catalog) {
+  const top = topVenue(papers.map((paper) => paper.venueRecord).filter(Boolean), catalog);
+  return top && { name: top.name, fullName: top.venue.name, basis: top.basis, formal: top.formal };
+}
+
+// Classifies every publication's venue once; both charts reuse the result.
+export function classifyPublicationVenues(report, catalog) {
+  validateVenueCatalog(catalog);
+  const warnings = [];
+  const publications = report.publications.map((paper) => {
+    let result;
+    try {
+      result = classifyVenue(paper.venue, catalog, { override: paper.venueCategory ?? "", kind: paper.venueKind ?? "" });
+    } catch (error) {
+      throw new Error(`${paper.key}: ${error.message}`);
+    }
+    if (!result.venue && paper.venue) {
+      warnings.push(
+        `${paper.key}: venue "${paper.venue}" is not in _data/venue_categories.json; ` +
+          (result.categoryId === "other" ? "counted in Other Venues" : "categorised by keywords") +
+          " and not considered for the top venue."
+      );
+    } else if (!paper.venue) {
+      warnings.push(`${paper.key}: missing booktitle/journal; counted in Other Venues.`);
+    }
+    return { ...paper, venueCategoryId: result.categoryId, venueRecord: result.venue };
+  });
+  return { publications, warnings };
+}
+
+export function addTopVenues(report, classified, catalog) {
+  const byKey = new Map(classified.publications.map((paper) => [paper.key, paper]));
+  return {
+    ...report,
+    categories: report.categories.map((category) => ({
+      ...category,
+      topVenue: describeTopVenue(
+        report.publications.filter((paper) => paper.categoryId === category.id).map((paper) => byKey.get(paper.key)),
+        catalog
+      ),
+    })),
+  };
+}
+
+export function analyzeVenues(report, catalog, classified = classifyPublicationVenues(report, catalog)) {
+  const publications = classified.publications.map((paper) => ({ ...paper, categoryId: paper.venueCategoryId }));
+  const categories = catalog.categories
+    .map((rule) => {
+      const papers = publications.filter((paper) => paper.categoryId === rule.id);
+      const venues = new Map();
+      for (const paper of papers) {
+        const name = paper.venueRecord?.abbreviation ?? venueShortName(paper.venue);
+        venues.set(name, (venues.get(name) ?? 0) + 1);
+      }
+      return {
+        id: rule.id,
+        label: rule.label,
+        color: rule.color,
+        count: papers.length,
+        percentage: percentageOf(papers.length, report.total),
+        titles: papers.map((paper) => paper.title),
+        venues: [...venues].map(([name, count]) => ({ name, count })),
+        topVenue: describeTopVenue(papers, catalog),
+      };
+    })
+    .filter((category) => category.count);
+  const result = { total: report.total, publications, categories, warnings: classified.warnings };
   validateReport(result);
   return result;
+}
+
+const SLICE_LABEL_RADIUS = 108;
+const SLICE_FONT_SIZE = 20;
+
+// Percentages are drawn inside a slice only when the arc can hold them;
+// names always live in the legend, so small slices never get cramped text.
+export function sliceLabelFits(text, sweep) {
+  const width = text.length * SLICE_FONT_SIZE * 0.58 + 10;
+  return sweep * SLICE_LABEL_RADIUS >= width && (sweep >= Math.PI * 2 - 1e-9 || sweep >= 0.42);
 }
 
 function pieMarkup(report, interactive = false) {
@@ -175,12 +250,14 @@ function pieMarkup(report, interactive = false) {
   const radius = 145;
   const point = (theta, distance = radius) => [180 + distance * Math.cos(theta), 180 + distance * Math.sin(theta)];
   const slices = report.categories.map((category) => {
-    const next = angle + (2 * Math.PI * category.count) / report.total;
+    const sweep = (2 * Math.PI * category.count) / report.total;
+    const next = angle + sweep;
     const start = point(angle);
     const end = point(next);
-    const label = point((angle + next) / 2, 108);
+    const label = category.count === report.total ? [180, 180 - SLICE_LABEL_RADIUS] : point((angle + next) / 2, SLICE_LABEL_RADIUS);
+    const top = category.topVenue ? `. Accepted at top venue: ${category.topVenue.name} (${category.topVenue.basis})` : "";
     const accessibility = interactive
-      ? ` tabindex="0" role="button" aria-label="${escapeXml(`${category.label}: ${category.count} publications, ${category.percentage}%`)}"`
+      ? ` tabindex="0" role="button" aria-label="${escapeXml(`${category.label}: ${category.count} publications, ${category.percentage}%${top}`)}"`
       : "";
     const attributes = `fill="${category.color}" stroke="${BACKGROUND}" stroke-width="3" data-category="${escapeXml(category.id)}" data-count="${
       category.count
@@ -192,23 +269,23 @@ function pieMarkup(report, interactive = false) {
             ","
           )} Z" ${attributes}/>`;
     angle = next;
+    const text = `${Math.round(category.percentage)}%`;
     return (
       shape +
-      `<text x="${label[0]}" y="${
-        label[1]
-      }" fill="#0e1116" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" pointer-events="none">${escapeXml(
-        category.shortLabel || `${category.percentage}%`
-      )}</text>`
+      (sliceLabelFits(text, sweep)
+        ? `<text x="${label[0].toFixed(2)}" y="${label[1].toFixed(
+            2
+          )}" fill="#0e1116" text-anchor="middle" dominant-baseline="central" font-size="${SLICE_FONT_SIZE}" font-weight="700" pointer-events="none" aria-hidden="true">${text}</text>`
+        : "")
     );
   });
   return (
     slices.join("") +
     `<circle cx="180" cy="180" r="70" fill="${BACKGROUND}"/>` +
-    `<text x="180" y="177" text-anchor="middle" fill="${TEXT}" font-size="38" font-weight="700">${report.total}</text>` +
-    `<text x="180" y="202" text-anchor="middle" fill="${MUTED}" font-size="13">publications</text>`
+    `<text x="180" y="180" text-anchor="middle" fill="${TEXT}" font-size="46" font-weight="700">${report.total}</text>` +
+    `<text x="180" y="208" text-anchor="middle" fill="${MUTED}" font-size="17">publications</text>`
   );
 }
-
 export function createPieSvg(report, { id = "research", title = "Research Focus Across Publications", interactive = false } = {}) {
   validateReport(report);
   const description = report.categories
@@ -262,38 +339,106 @@ export function toCsv(headers, rows) {
   return [headers, ...rows].map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\r\n") + "\r\n";
 }
 
+const STAR_SVG =
+  '<svg class="top-venue-star" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+  '<path class="top-venue-star-body" d="M11 3.2l2.3 5.2 5.6.5-4.3 3.7 1.3 5.5L11 15.2l-4.9 2.9 1.3-5.5-4.3-3.7 5.6-.5z"/>' +
+  '<path class="top-venue-sparkle" d="M20.2 1.2l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/>' +
+  '<path class="top-venue-sparkle top-venue-sparkle-late" d="M20.5 15.5l.45 1.15 1.15.45-1.15.45-.45 1.15-.45-1.15-1.15-.45 1.15-.45z"/>' +
+  "</svg>";
+
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function fillTooltip(tooltip, category) {
+  const details = `${category.count} publication${category.count === 1 ? "" : "s"} | ${category.percentage}%`;
+  const parts = [element("strong", "research-focus-tooltip-title", category.label), element("span", "", details)];
+  if ("topVenue" in category) {
+    const top = element("span", "research-focus-top-venue");
+    if (category.topVenue) {
+      const name = element("span", "top-venue-name", category.topVenue.name);
+      name.title = category.topVenue.fullName;
+      const star = element("span", "top-venue-star-wrap");
+      star.innerHTML = STAR_SVG;
+      top.append(
+        "Accepted at ",
+        name,
+        star,
+        element("span", "visually-hidden", " (the highest-ranked venue where these publications were accepted)")
+      );
+      parts.push(top, element("span", "research-focus-top-basis", category.topVenue.basis));
+    } else {
+      top.textContent = "Accepted at: no ranked venue yet";
+      parts.push(top);
+    }
+  }
+  tooltip.replaceChildren(...parts);
+}
+
 function renderInteractiveChart(container, report, id, title) {
-  container.innerHTML = createPieSvg(report, { id, title, interactive: true });
-  const tooltip = document.createElement("div");
-  tooltip.className = "research-focus-tooltip";
+  const layout = element("div", "research-chart");
+  const pie = element("div", "research-chart-pie");
+  pie.innerHTML = createPieSvg(report, { id, title, interactive: true });
+  const legend = element("ul", "research-chart-legend");
+  legend.setAttribute("aria-label", `${title} legend`);
+  for (const category of report.categories) {
+    const item = element("li", "research-chart-legend-item");
+    item.dataset.legendCategory = category.id;
+    const swatch = element("span", "research-chart-swatch");
+    swatch.style.background = category.color;
+    swatch.setAttribute("aria-hidden", "true");
+    item.append(
+      swatch,
+      element("span", "research-chart-legend-label", category.label),
+      element("span", "research-chart-legend-value", `${category.count} · ${category.percentage}%`)
+    );
+    legend.append(item);
+  }
+  layout.append(pie, legend);
+  const tooltip = element("div", "research-focus-tooltip");
   tooltip.id = `${id}-tooltip`;
   tooltip.setAttribute("role", "tooltip");
   tooltip.hidden = true;
-  const heading = document.createElement("strong");
-  const details = document.createElement("span");
-  tooltip.append(heading, details);
-  container.append(tooltip);
+  container.replaceChildren(layout, tooltip);
+
+  const slices = new Map([...pie.querySelectorAll("[data-category]")].map((slice) => [slice.dataset.category, slice]));
+  const items = new Map([...legend.children].map((item) => [item.dataset.legendCategory, item]));
+  const setActive = (categoryId) => {
+    for (const [key, node] of [...slices, ...items]) node.classList.toggle("is-active", key === categoryId);
+  };
   const hide = () => {
     tooltip.hidden = true;
+    setActive(null);
   };
-  for (const slice of container.querySelectorAll("[data-category]")) {
-    const category = report.categories.find((item) => item.id === slice.dataset.category);
+  // The tooltip docks to the half of the card away from the pointer so it never hides what is being inspected.
+  const show = (category, node, event) => {
+    fillTooltip(tooltip, category);
+    setActive(category.id);
+    const card = (container.closest(".research-focus-visual") ?? container).getBoundingClientRect();
+    const box = node.getBoundingClientRect();
+    const y = Number.isFinite(event?.clientY) && event.clientY > 0 ? event.clientY : box.top + box.height / 2;
+    tooltip.classList.toggle("is-top", y > card.top + card.height / 2);
+    tooltip.hidden = false;
+  };
+  for (const category of report.categories) {
+    const slice = slices.get(category.id);
+    const item = items.get(category.id);
     slice.setAttribute("aria-describedby", tooltip.id);
-    const show = () => {
-      heading.textContent = category.label;
-      details.textContent = `${category.count} publication${category.count === 1 ? "" : "s"} | ${category.percentage}%`;
-      tooltip.hidden = false;
-    };
-    slice.addEventListener("pointerenter", show);
-    slice.addEventListener("pointerleave", hide);
-    slice.addEventListener("focus", show);
+    for (const node of [slice, item]) {
+      node.addEventListener("pointerenter", (event) => show(category, node, event));
+      node.addEventListener("pointerleave", hide);
+      node.addEventListener("click", (event) => show(category, node, event));
+    }
+    slice.addEventListener("focus", () => show(category, slice));
     slice.addEventListener("blur", hide);
-    slice.addEventListener("click", show);
     slice.addEventListener("keydown", (event) => {
       if (event.key === "Escape") hide();
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        show();
+        show(category, slice);
       }
     });
   }
@@ -303,22 +448,23 @@ function renderInteractiveChart(container, report, id, title) {
   });
 }
 
-function showReport(section, report) {
+function showReport(section, report, catalog) {
   section.querySelector("[data-research-total]").textContent = `${report.total} publications in `;
-  renderInteractiveChart(section.querySelector("[data-research-pie]"), report, "research", "Research topics");
-  renderInteractiveChart(section.querySelector("[data-venue-pie]"), analyzeVenues(report), "venues", "Journals and conferences");
+  const classified = classifyPublicationVenues(report, catalog);
+  const venues = analyzeVenues(report, catalog, classified);
+  renderInteractiveChart(section.querySelector("[data-research-pie]"), addTopVenues(report, classified, catalog), "research", "Research topics");
+  renderInteractiveChart(section.querySelector("[data-venue-pie]"), venues, "venues", "Journals and conferences by field");
   const notices = section.querySelector("[data-research-warnings]");
-  for (const warning of report.warnings) {
+  for (const warning of [...report.warnings, ...venues.warnings]) {
     console.warn("Research focus:", warning);
     const item = document.createElement("li");
     item.textContent = warning;
     notices.append(item);
   }
-  section.querySelector("[data-research-notes]").hidden = !report.warnings.length;
+  section.querySelector("[data-research-notes]").hidden = !report.warnings.length && !venues.warnings.length;
   section.querySelector("[data-research-content]").hidden = false;
   section.querySelector("[data-research-status]").hidden = true;
 }
-
 export function isOral(publication) {
   return /^(true|yes|1)$/i.test(String(publication.oral ?? "").trim());
 }
@@ -412,12 +558,19 @@ export async function initializeScholarMetrics(section, fetchSource = fetch) {
 export async function initializeResearchFocus(section, fetchSource = fetch) {
   initializeScholarMetrics(section, fetchSource);
   try {
-    const response = await fetchSource(section.dataset.source, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Publication data request failed (HTTP ${response.status}).`);
-    const publications = await response.json();
+    const load = async (url, label) => {
+      const response = await fetchSource(url, { cache: "no-store" });
+      if (!response.ok) throw new Error(`${label} request failed (HTTP ${response.status}).`);
+      return response.json();
+    };
+    const [publications, catalog] = await Promise.all([
+      load(section.dataset.source, "Publication data"),
+      section.dataset.venueSource ? load(section.dataset.venueSource, "Venue catalog") : null,
+    ]);
+    if (!catalog) throw new Error("Missing venue catalog source.");
     renderHighlights(section, analyzeHighlights(publications));
     const report = analyzePublications(publications, JSON.parse(section.dataset.topics));
-    showReport(section, report);
+    showReport(section, report, catalog);
   } catch (error) {
     console.error("Research-focus chart failed:", error);
     const status = section.querySelector("[data-research-status]");
